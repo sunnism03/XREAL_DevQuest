@@ -1,29 +1,54 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraControl : MonoBehaviour
 {
     [SerializeField][Range(1f, 20f)] private float sensitivity = 10f;
+
+    private Players input;
+    private Vector2 lookDelta;
     private float mouseX, mouseY;
     private Transform playerTransform;
 
+    private void Awake()
+    {
+        input = new Players();
+    }
+
+    private void OnEnable()
+    {
+        input.Player.Enable();
+
+        // 마우스 delta 입력 읽기
+        input.Player.Look.performed += ctx => lookDelta = ctx.ReadValue<Vector2>();
+        input.Player.Look.canceled += _ => lookDelta = Vector2.zero;
+    }
+
+    private void OnDisable()
+    {
+        input.Player.Look.performed -= ctx => lookDelta = ctx.ReadValue<Vector2>();
+        input.Player.Look.canceled -= _ => lookDelta = Vector2.zero;
+
+        input.Player.Disable();
+    }
+
     private void Start()
     {
-        //원활한 Debugging을 위해 마우스 커서를 보이지 않도록 하였습니다, Play 중 Esc 키를 누르면 마우스를 볼 수 있습니다.
         Cursor.visible = false;
         Cursor.lockState = CursorLockMode.Locked;
+
         playerTransform = transform.parent;
     }
 
     private void FixedUpdate()
     {
-        mouseX += Input.GetAxis("Mouse X") * sensitivity;
-        playerTransform.rotation = Quaternion.Euler(new Vector3(0, mouseX, 0));
-        
-        mouseY += Input.GetAxis("Mouse Y") * sensitivity;
+        float deltaX = lookDelta.x * sensitivity * Time.fixedDeltaTime;
+        float deltaY = lookDelta.y * sensitivity * Time.fixedDeltaTime;
+
+        mouseX += deltaX;
+        playerTransform.rotation = Quaternion.Euler(0f, mouseX, 0f);
+
+        mouseY += deltaY;
         mouseY = Mathf.Clamp(mouseY, -75f, 75f);
-        transform.localRotation = Quaternion.Euler(new Vector3(-mouseY, 0, 0));
+        transform.localRotation = Quaternion.Euler(-mouseY, 0f, 0f);
     }
 }
