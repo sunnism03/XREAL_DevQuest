@@ -8,8 +8,8 @@ public class Monster : MonoBehaviour
     NavMeshAgent nmAgent;
 
     [Header("Chase Settings")]
-    public float chaseDistance = 10f;     // 추적 시작 거리
-    public float viewAngle = 90f;         // 시야각 (ex: 90도)
+    public float chaseDistance = 30f;     // 추적 시작 거리
+    public float viewAngle = 120f;         // 시야각 (ex: 90도)
 
     private void Start()
     {
