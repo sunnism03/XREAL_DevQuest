@@ -79,10 +79,13 @@ public class CCinputManager : MonoBehaviour
 
         // ───────────── 중력 처리 ─────────────
         if (controller.isGrounded && yVelocity < 0f)
+        {
             yVelocity = -2f;
-
-        yVelocity += gravity * Time.deltaTime;
-
+        }
+        else
+        {
+            yVelocity += gravity * Time.deltaTime;
+        }   
         // ───────────── 속도 결정 (걷기 vs 달리기) ─────────────
         float currentSpeed = (isShiftPressed && moveInput.y > 0) ? runSpeed : moveSpeed;
 

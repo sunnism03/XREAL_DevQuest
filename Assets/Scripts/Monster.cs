@@ -3,43 +3,66 @@ using UnityEngine.AI;
 
 public class Monster : MonoBehaviour
 {
-    public Transform target;
-
-    NavMeshAgent nmAgent;
+    private NavMeshAgent nmAgent;
+    private Transform target;
 
     [Header("Chase Settings")]
-    public float chaseDistance = 30f;     // 추적 시작 거리
-    public float viewAngle = 120f;         // 시야각 (ex: 90도)
+    public float chaseDistance = 15f;   // 플레이어를 감지하는 거리
+    public float viewAngle = 120f;      // 시야각
+
+    private bool isChasing = false;     // 추격 상태 여부
 
     private void Start()
     {
         nmAgent = GetComponent<NavMeshAgent>();
+
+        // ✅ Player 태그 자동 탐색
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            target = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning($"⚠️ Monster '{name}' could not find any object tagged 'Player'.");
+        }
     }
 
     private void Update()
     {
         if (target == null) return;
 
-        // 거리 체크
         float distance = Vector3.Distance(transform.position, target.position);
-        if (distance > chaseDistance) 
+
+        // ✅ 플레이어가 사정거리 안에 들어오면 추격 시작
+        if (distance <= chaseDistance)
         {
-            nmAgent.ResetPath();
-            return;
+            // 시야각 확인
+            Vector3 dirToPlayer = (target.position - transform.position).normalized;
+            float angle = Vector3.Angle(transform.forward, dirToPlayer);
+
+            if (angle <= viewAngle * 0.5f)
+            {
+                // 추격 모드 전환
+                if (!isChasing)
+                {
+                    Debug.Log($"👁️ Monster '{name}' started chasing {target.name}");
+                    isChasing = true;
+                }
+
+                nmAgent.isStopped = false;
+                nmAgent.SetDestination(target.position);
+                return;
+            }
         }
 
-        // 시야각 체크
-        Vector3 dirToPlayer = (target.position - transform.position).normalized;
-        float angle = Vector3.Angle(transform.forward, dirToPlayer);
-
-        if (angle > viewAngle * 0.5f)
+        // 🧍 플레이어가 멀어지거나 시야 밖일 경우 추격 중단
+        if (isChasing)
         {
-            // 플레이어가 정면 시야 밖이면 추적 중단
             nmAgent.ResetPath();
-            return;
+            nmAgent.isStopped = true;
+            isChasing = false;
+            Debug.Log($"😴 Monster '{name}' stopped chasing {target.name}");
         }
-
-        // ✅ 두 조건 모두 만족 → 추적 시작
-        nmAgent.SetDestination(target.position);
     }
 }

@@ -14,7 +14,7 @@ public class MonsterSpawner : MonoBehaviour
 
     private void SpawnEnemies()
     {
-        Transform target = GameObject.FindWithTag("Player").transform;
+        //Transform target = GameObject.FindWithTag("Player").transform;
 
         float sizeX = environment.localScale.x * 200f;
         float sizeZ = environment.localScale.z * 200f;
@@ -33,7 +33,7 @@ public class MonsterSpawner : MonoBehaviour
             GameObject obj = Instantiate(monsterVariants[r], pos, Quaternion.identity);
 
             // ✅ 타겟(Player) 설정
-            obj.GetComponent<Monster>().target = target;
+            //obj.GetComponent<Monster>().target = target;
         }
     }
 }
