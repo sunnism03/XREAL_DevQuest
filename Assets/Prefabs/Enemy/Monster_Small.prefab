@@ -13,6 +13,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Monster_Small
       objectReference: {fileID: 0}
+    - target: {fileID: 1894069464050926002, guid: 65b9ada0fb27247aeb7c1f85caba655b,
+        type: 3}
+      propertyPath: m_Mass
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 8526465424904053065, guid: 65b9ada0fb27247aeb7c1f85caba655b,
         type: 3}
       propertyPath: m_LocalScale.x
