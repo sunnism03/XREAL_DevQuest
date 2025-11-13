@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -9,69 +8,78 @@ public class Enemy : MonoBehaviour
     [SerializeField] private GameObject splashFx;
 
     [Header("Settings")]
-    [SerializeField] private float attackRange = 2f;          // 근거리 공격 범위
-    [SerializeField] private float detectRange = 20f;         // 추적 시작 거리
+    [SerializeField] private float attackRange = 2f;
+    [SerializeField] private float detectRange = 20f;
     [SerializeField] private float moveSpeed = 3.5f;
+    [SerializeField] private int attackDamage = 1;
+
+    [SerializeField] private float attackCooldown = 1.0f; // ⭐ 공격 속도
+    private float attackTimer = 0f;
 
     private NavMeshAgent agent;
     private Transform player;
-    private bool attackDone;
 
-    public enum State
-    {
-        None,
-        Idle,
-        Chase,
-        Attack,
-        RangedAttack
-    }
-
-    [Header("Debug")]
+    public enum State { None, Idle, Chase, Attack, Stun }
     public State state = State.None;
     public State nextState = State.None;
 
+    private PlayerHealth playerHealth;
+
+    private float stunTimer = 0f;
+    private float stunDuration = 0.7f;
+
+
     private void Start()
     {
-        state = State.None;
         nextState = State.Idle;
-
         agent = GetComponent<NavMeshAgent>();
         if (agent != null) agent.speed = moveSpeed;
 
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        player = GameObject.FindWithTag("Player")?.transform;
+
+        if (player != null)
+            playerHealth = player.GetComponent<PlayerHealth>();
     }
 
     private void Update()
     {
         if (player == null) return;
 
-        // 1️⃣ 스테이트 전환 조건 판단
-        if (nextState == State.None)
+        // ⭐ 1) STUN 상태 우선 처리
+        if (state == State.Stun)
         {
-            switch (state)
+            stunTimer -= Time.deltaTime;
+            if (stunTimer <= 0)
+                nextState = State.Idle;
+        }
+        else
+        {
+            // ⭐ 2) 일반 FSM 전환
+            if (nextState == State.None)
             {
-                case State.Idle:
-                    if (IsPlayerInRange(detectRange))
-                        nextState = State.Chase;
-                    break;
+                switch (state)
+                {
+                    case State.Idle:
+                        if (IsPlayerInRange(detectRange))
+                            nextState = State.Chase;
+                        break;
 
-                case State.Chase:
-                    if (IsPlayerInRange(attackRange))
-                        nextState = State.Attack;
-                    else if (!IsPlayerInRange(detectRange))
-                        nextState = State.Idle;
-                    break;
-                case State.Attack:
-                    if (attackDone)
-                    {
-                        nextState = State.Idle;
-                        attackDone = false;
-                    }
-                    break;
+                    case State.Chase:
+                        if (IsPlayerInRange(attackRange))
+                            nextState = State.Attack;
+                        else if (!IsPlayerInRange(detectRange))
+                            nextState = State.Idle;
+                        break;
+
+                    case State.Attack:
+                        if (!IsPlayerInRange(attackRange))
+                            nextState = State.Chase;
+                        break;
+                }
             }
         }
 
-        // 2️⃣ 스테이트 초기화
+        // ⭐ 3) State Init
         if (nextState != State.None)
         {
             state = nextState;
@@ -91,41 +99,70 @@ public class Enemy : MonoBehaviour
 
                 case State.Attack:
                     agent.isStopped = true;
+                    animator.SetBool("isRunning", false);
                     animator.SetTrigger("attack");
+                    attackTimer = 0f; // 공격 초기화
+                    break;
+
+                case State.Stun:
+                    agent.isStopped = true;
+                    animator.SetBool("isRunning", false);
+                    animator.SetTrigger("stun");
+                    stunTimer = stunDuration;
                     break;
             }
         }
 
-        // 3️⃣ 글로벌 & 스테이트 업데이트
+        // ⭐ 4) 상태별 반복 행동
+
         if (state == State.Chase)
         {
-            if (agent.enabled && player != null)
-                agent.SetDestination(player.position);
+            agent.SetDestination(player.position);
+        }
+        else if (state == State.Attack)
+        {
+            attackTimer -= Time.deltaTime;
+
+            if (attackTimer <= 0f)
+            {
+                TryDealDamage();
+                attackTimer = attackCooldown;
+            }
         }
     }
+
 
     private bool IsPlayerInRange(float range)
     {
         return Vector3.Distance(transform.position, player.position) <= range;
     }
 
-    // ===== 애니메이션 이벤트 =====
-    public void InstantiateFx()
+    // ⭐ 애니메이션 이벤트 없어도 공격 들어감
+    private void TryDealDamage()
     {
-        Instantiate(splashFx, transform.position, Quaternion.identity);
+        if (playerHealth == null) return;
+
+        if (IsPlayerInRange(attackRange + 0.5f))
+        {
+            playerHealth.TakeDamage(attackDamage);
+            Debug.Log($"🗡 Enemy hit Player → -{attackDamage} HP");
+        }
     }
 
-
-    public void WhenAnimationDone()
+    // ⭐ Bullet에서 호출할 Stun
+    public void ApplyStun()
     {
-        attackDone = true;
+        if (state == State.Stun) return;
+        nextState = State.Stun;
     }
+
 
     private void OnDrawGizmosSelected()
     {
-        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, attackRange);
-        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+
+        Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, detectRange);
     }
 }

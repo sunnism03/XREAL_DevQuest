@@ -10,7 +10,6 @@ public class BulletController : MonoBehaviour
     void Awake()
     {
         if (rb == null) rb = GetComponent<Rigidbody>();
-        // 권장 설정: RB에서 Use Gravity=OFF, Collision Detection=Continuous
     }
 
     void OnEnable()
@@ -26,20 +25,24 @@ public class BulletController : MonoBehaviour
         rb.velocity = dir.normalized * speed;
     }
 
-    void OnCollisionEnter(Collision collision)
+    private void OnCollisionEnter(Collision collision)
     {
-        if (collision.gameObject.CompareTag("Enemy"))
+        Debug.Log($"🟡 Bullet collided with {collision.gameObject.name}");
+
+        // Enemy 데미지 처리
+        EnemyHealth enemy = collision.gameObject.GetComponent<EnemyHealth>();
+        if (enemy != null)
         {
-            if (collision.rigidbody != null)
-            {
-                Vector3 knockbackDir = -collision.contacts[0].normal;
-                collision.rigidbody.AddForce(knockbackDir * 300f, ForceMode.Impulse);
-            }
+            Vector3 hitPoint = collision.contacts[0].point;
+
+            enemy.TakeDamage(1, hitPoint);   // Bullet 당 데미지 = 1
+            Debug.Log("🎯 Bullet HIT Enemy! Damage 1 applied.");
         }
+
         Disable();
     }
 
-    void Disable()
+    private void Disable()
     {
         gameObject.SetActive(false);
     }
