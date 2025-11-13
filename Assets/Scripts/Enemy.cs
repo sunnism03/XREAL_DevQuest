@@ -1,51 +1,65 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
-using Random = UnityEngine.Random;
 
 public class Enemy : MonoBehaviour
 {
-    [Header("Preset Fields")] 
+    [Header("Preset Fields")]
     [SerializeField] private Animator animator;
     [SerializeField] private GameObject splashFx;
-    
+
     [Header("Settings")]
-    [SerializeField] private float attackRange;
-    
-    public enum State 
+    [SerializeField] private float attackRange = 2f;          // 근거리 공격 범위
+    [SerializeField] private float detectRange = 20f;         // 추적 시작 거리
+    [SerializeField] private float moveSpeed = 3.5f;
+
+    private NavMeshAgent agent;
+    private Transform player;
+    private bool attackDone;
+
+    public enum State
     {
         None,
         Idle,
-        Attack
+        Chase,
+        Attack,
+        RangedAttack
     }
-    
+
     [Header("Debug")]
     public State state = State.None;
     public State nextState = State.None;
 
-    private bool attackDone;
-
     private void Start()
-    { 
+    {
         state = State.None;
         nextState = State.Idle;
+
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null) agent.speed = moveSpeed;
+
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
     }
 
     private void Update()
     {
-        //1. 스테이트 전환 상황 판단
-        if (nextState == State.None) 
+        if (player == null) return;
+
+        // 1️⃣ 스테이트 전환 조건 판단
+        if (nextState == State.None)
         {
-            switch (state) 
+            switch (state)
             {
                 case State.Idle:
-                    //1 << 6인 이유는 Player의 Layer가 6이기 때문
-                    if (Physics.CheckSphere(transform.position, attackRange, 1 << 6, QueryTriggerInteraction.Ignore))
-                    {
+                    if (IsPlayerInRange(detectRange))
+                        nextState = State.Chase;
+                    break;
+
+                case State.Chase:
+                    if (IsPlayerInRange(attackRange))
                         nextState = State.Attack;
-                    }
+                    else if (!IsPlayerInRange(detectRange))
+                        nextState = State.Idle;
                     break;
                 case State.Attack:
                     if (attackDone)
@@ -54,51 +68,64 @@ public class Enemy : MonoBehaviour
                         attackDone = false;
                     }
                     break;
-                //insert code here...
             }
         }
-        
-        //2. 스테이트 초기화
-        if (nextState != State.None) 
+
+        // 2️⃣ 스테이트 초기화
+        if (nextState != State.None)
         {
             state = nextState;
             nextState = State.None;
-            switch (state) 
+
+            switch (state)
             {
                 case State.Idle:
+                    agent.isStopped = true;
+                    animator.SetBool("isRunning", false);
                     break;
+
+                case State.Chase:
+                    agent.isStopped = false;
+                    animator.SetBool("isRunning", true);
+                    break;
+
                 case State.Attack:
-                    Attack();
+                    agent.isStopped = true;
+                    animator.SetTrigger("attack");
                     break;
-                //insert code here...
             }
         }
-        
-        //3. 글로벌 & 스테이트 업데이트
-        //insert code here...
-    }
-    
-    private void Attack() //현재 공격은 애니메이션만 작동합니다.
-    {
-        animator.SetTrigger("attack");
+
+        // 3️⃣ 글로벌 & 스테이트 업데이트
+        if (state == State.Chase)
+        {
+            if (agent.enabled && player != null)
+                agent.SetDestination(player.position);
+        }
     }
 
-    public void InstantiateFx() //Unity Animation Event 에서 실행됩니다.
+    private bool IsPlayerInRange(float range)
+    {
+        return Vector3.Distance(transform.position, player.position) <= range;
+    }
+
+    // ===== 애니메이션 이벤트 =====
+    public void InstantiateFx()
     {
         Instantiate(splashFx, transform.position, Quaternion.identity);
     }
-    
-    public void WhenAnimationDone() //Unity Animation Event 에서 실행됩니다.
+
+
+    public void WhenAnimationDone()
     {
         attackDone = true;
     }
 
-
     private void OnDrawGizmosSelected()
     {
-        //Gizmos를 사용하여 공격 범위를 Scene View에서 확인할 수 있게 합니다. (인게임에서는 볼 수 없습니다.)
-        //해당 함수는 없어도 기능 상의 문제는 없지만, 기능 체크 및 디버깅을 용이하게 합니다.
-        Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
-        Gizmos.DrawSphere(transform.position, attackRange);
+        Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.color = new Color(1f, 1f, 0f, 0.3f);
+        Gizmos.DrawWireSphere(transform.position, detectRange);
     }
 }
