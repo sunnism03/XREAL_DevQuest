@@ -1,29 +1,43 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class EnemyHealth : MonoBehaviour
 {
     [SerializeField] private int maxHP = 5;
     private int currentHP;
 
+    [Header("UI References")]
+    public Slider hpSlider;
+    public Canvas hpCanvas;
+
     private Animator animator;
 
-    void Start()
+    private void Start()
     {
         currentHP = maxHP;
         animator = GetComponent<Animator>();
+
+        // UI 초기값
+        if (hpSlider)
+        {
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
+        }
     }
 
     public void TakeDamage(int amount, Vector3 hitPoint)
     {
         currentHP -= amount;
 
-        // 🔥 stun 애니메이션 재생
-        if (animator != null)
-        {
-            animator.SetTrigger("stun");
-        }
+        // Update HP bar
+        if (hpSlider)
+            hpSlider.value = currentHP;
 
-        Debug.Log($"Enemy Hit! HP → {currentHP}");
+        // 스턴 애니메이션
+        if (animator)
+            animator.SetTrigger("stun");
+
+        Debug.Log($"Enemy Hit! HP: {currentHP}");
 
         if (currentHP <= 0)
             Die();
@@ -31,7 +45,7 @@ public class EnemyHealth : MonoBehaviour
 
     private void Die()
     {
-        GameManager.Instance.EnemyKilled();
-        Destroy(gameObject);
+        GameManager.Instance.EnemyKilled(); // 처치된 적 수 +1
+        Destroy(gameObject); // 적과 HP UI 모두 제거됨
     }
 }
