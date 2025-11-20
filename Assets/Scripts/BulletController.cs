@@ -14,7 +14,7 @@ public class BulletController : MonoBehaviour
 
     void OnEnable()
     {
-        rb.velocity = Vector3.zero;
+        rb.linearVelocity = Vector3.zero;
         rb.angularVelocity = Vector3.zero;
         CancelInvoke();
         Invoke(nameof(Disable), lifetime);
@@ -22,7 +22,7 @@ public class BulletController : MonoBehaviour
 
     public void Fire(Vector3 dir)
     {
-        rb.velocity = dir.normalized * speed;
+        rb.linearVelocity = dir.normalized * speed;
     }
 
     private void OnCollisionEnter(Collision collision)

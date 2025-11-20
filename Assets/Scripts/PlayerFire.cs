@@ -76,8 +76,8 @@ public class PlayerFire : MonoBehaviour
             var rb = bullet.GetComponent<Rigidbody>();
             if (rb != null)
             {
-                rb.velocity = dir * 25f;
-                Debug.Log($"💨 [BULLET RB] No BulletController, applied velocity={rb.velocity:F2}");
+                rb.linearVelocity = dir * 25f;
+                Debug.Log($"💨 [BULLET RB] No BulletController, applied velocity={rb.linearVelocity:F2}");
             }
             else
             {
