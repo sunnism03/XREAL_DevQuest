@@ -1,24 +1,38 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerHealth : MonoBehaviour
 {
-    [SerializeField] private int maxHP = 3;
+    public int maxHP = 5;
     private int currentHP;
 
+    [Header("UI")]
+    public Slider hpSlider;   // 손목이나 머리 위 World Space Slider
 
-    void Start()
+    private void Start()
     {
         currentHP = maxHP;
+        if (hpSlider)
+        {
+            hpSlider.maxValue = maxHP;
+            hpSlider.value = currentHP;
+        }
     }
 
     public void TakeDamage(int amount)
     {
         currentHP -= amount;
-        Debug.Log($"💔 Player damaged: -{amount} → HP {currentHP}");
+        if (hpSlider)
+            hpSlider.value = currentHP;
 
         if (currentHP <= 0)
         {
-            GameManager.Instance.Lose();
+            Die();
         }
+    }
+
+    private void Die()
+    {
+        GameManager.Instance.OnPlayerDead();
     }
 }
